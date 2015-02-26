@@ -1,0 +1,4 @@
+name = Flamegraphs
+description = Generate flamegraphs based on xhprof output
+core = 7.x
+package = Performance

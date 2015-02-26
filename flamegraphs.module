@@ -1,0 +1,92 @@
+<?php
+
+/**
+ * Implements hook_init().
+ */
+function flamegraphs_init() {
+  if (flamegraphs_enabled()) {
+    xhprof_sample_enable();
+    register_shutdown_function('flamegraphs_shutdown');
+  }
+}
+
+/**
+ * Shutdown callback to generate a flamegraph.
+ */
+function flamegraphs_shutdown() {
+  // Don't bother to check if flamegraphs are enabled.  We got here because
+  // this function was registered as a shutdown hook.
+  module_load_include('inc', 'flamegraphs', 'includes/xhprof-flamegraphs');
+  $data = xhprof_sample_disable();
+  flamegraphs_generate_svg($data, $_ENV['flamegraph_path']);
+}
+
+/**
+ * @param $data
+ * @param $svg_path
+ * @return bool
+ */
+function flamegraphs_generate_svg($data, $svg_path = NULL) {
+  module_load_include('inc', 'flamegraphs', 'includes/xhprof-flamegraphs');
+  $stacks = flamegraphs_get_stack_data($data);
+  $default_path = '/vagrant/docroot/sites/all/libraries/FlameGraph/flamegraph.pl';
+  $flamegraph_script = variable_get('flamegraphs_pl_script', $default_path);
+  $title = "Flamegraph for " . current_path();
+
+  if (empty($svg_path)) {
+    $path = "/tmp/";
+
+    $uri = 'public://';
+    if ($wrapper = file_stream_wrapper_get_instance_by_uri($uri)) {
+      $path = $wrapper->realpath();
+    }
+
+    $svg_path = $path . "/flamegraph.svg";
+  }
+
+  $descriptorspec = array(
+    0 => array("pipe", "r"),  // stdin
+    1 => array("pipe", "w"),  // stdout
+    2 => array("pipe", "w") // stderr
+  );
+
+  $process = proc_open(
+    "{$flamegraph_script} --title='{$title}' > {$svg_path}",
+    $descriptorspec,
+    $pipes,
+    "/vagrant/tmp"
+  );
+
+  if (!is_resource($process)) {
+    watchdog('flamegraphs', 'Could not open process.', array(), WATCHDOG_ERROR);
+    return FALSE;
+  }
+
+  fwrite($pipes[0], $stacks);
+  fclose($pipes[0]);
+  $status_code = proc_close($process);
+
+  if ($status_code != 0) {
+    watchdog('flamegraphs', "Non-zero status code returned (:status)", array(':status' => $status_code), WATCHDOG_ERROR);
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+/**
+ * Check if flamegraph generation is enabled.
+ */
+function flamegraphs_enabled() {
+  if (!extension_loaded('xhprof')) {
+    watchdog('flamegraphs', 'XHProf extension is required.', array(), WATCHDOG_ERROR);
+    return FALSE;
+  }
+
+  if (!empty($_COOKIE['XDEBUG_TRACE']) || !empty($_GET['flame'])) {
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
