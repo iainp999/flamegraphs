@@ -5,6 +5,12 @@
  */
 function flamegraphs_init() {
   if (flamegraphs_enabled()) {
+    // In case we always want a full page build.
+    if (variable_get('flamegraphs_clear_caches', FALSE)) {
+      module_invoke_all('flush_caches');
+      cache_clear_all();
+    }
+
     xhprof_sample_enable();
     register_shutdown_function('flamegraphs_shutdown');
   }
