@@ -31,7 +31,7 @@ function flamegraphs_generate_svg($data, $svg_path = NULL) {
   $stacks = flamegraphs_get_stack_data($data);
   $default_path = '/vagrant/docroot/sites/all/libraries/FlameGraph/flamegraph.pl';
   $flamegraph_script = variable_get('flamegraphs_pl_script', $default_path);
-  $title = "Flamegraph for " . current_path();
+  $title = "Flamegraph for " . current_path() . " (" . drupal_get_title() . ")";
 
   if (empty($svg_path)) {
     $path = "/tmp/";
