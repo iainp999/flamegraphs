@@ -11,40 +11,6 @@
  */
 
 /**
- * @param array $files
- * @return string
- */
-function flamegraphs_generate_from_files($files = array()) {
-  $data = '';
-
-  foreach ($files as $file) {
-    if (!file_exists($file)) {
-      throw new RuntimeException("$file doesn't exist!");
-    }
-    $file = strpos($file, 'gz') === (strlen($file) - 2) ? "compress.zlib://$file" : $file;
-    $raw_xhprof = @unserialize(file_get_contents($file));
-
-    $data = flamegraphs_get_stack_data($raw_xhprof);
-  }
-
-  return $data;
-}
-
-/**
- * @param $dir
- * @return string
- */
-function flamegraphs_generate_from_directory($dir) {
-  $files = array();
-
-  if (is_dir($dir)) {
-    $files = glob("{$dir}/*.sample_xhprof") + glob("{$dir}/*.sample_xhprof.gz");
-  }
-
-  return flamegraphs_generate_from_files($files);
-}
-
-/**
  * Generate stacks from raw xhprof data.
  *
  * @param $raw_xhprof
