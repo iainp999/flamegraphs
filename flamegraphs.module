@@ -24,7 +24,7 @@ function flamegraphs_shutdown() {
   // this function was registered as a shutdown hook.
   module_load_include('inc', 'flamegraphs', 'includes/xhprof-flamegraphs');
   $data = xhprof_sample_disable();
-  flamegraphs_generate_svg($data, $_ENV['flamegraph_path']);
+  flamegraphs_generate_svg($data);
 }
 
 /**
@@ -56,11 +56,13 @@ function flamegraphs_generate_svg($data, $svg_path = NULL) {
     2 => array("pipe", "w") // stderr
   );
 
+  $command = "{$flamegraph_script} --title='{$title}' > {$svg_path}";
+
   $process = proc_open(
-    "{$flamegraph_script} --title='{$title}' > {$svg_path}",
+    $command,
     $descriptorspec,
     $pipes,
-    "/vagrant/tmp"
+    "/tmp"
   );
 
   if (!is_resource($process)) {
@@ -84,12 +86,12 @@ function flamegraphs_generate_svg($data, $svg_path = NULL) {
  * Check if flamegraph generation is enabled.
  */
 function flamegraphs_enabled() {
-  if (!extension_loaded('xhprof')) {
-    watchdog('flamegraphs', 'XHProf extension is required.', array(), WATCHDOG_ERROR);
-    return FALSE;
-  }
-
   if (!empty($_COOKIE['XDEBUG_TRACE']) || !empty($_GET['flame'])) {
+    if (!extension_loaded('xhprof')) {
+      watchdog('flamegraphs', 'XHProf extension is required.', array(), WATCHDOG_ERROR);
+      return FALSE;
+    }
+
     return TRUE;
   }
 
