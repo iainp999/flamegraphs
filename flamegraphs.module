@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Implements hook_init().
+ * Implements hook_boot().
  */
-function flamegraphs_init() {
+function flamegraphs_boot() {
   if (flamegraphs_enabled()) {
     // In case we always want a full page build.
     if (variable_get('flamegraphs_clear_caches', FALSE)) {
